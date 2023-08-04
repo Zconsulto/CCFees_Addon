@@ -153,8 +153,10 @@ namespace CCFees_Addon
             string docNumReturn = getQueryField(invoices, "DocNum");
             return !docNumReturn.Equals("0");
         }
-        private bool noTaxRows(int rowCount, SAPbouiCOM.Matrix matrix)
+        private bool noTaxRows(SAPbouiCOM.Form activeForm)
         {
+            SAPbouiCOM.Matrix matrix = getMatrix(activeForm, 38);
+            int rowCount = matrix.VisualRowCount;
             bool EmptyRowTax = false;
             for (int i = 1; i <= rowCount - 1; i++)
             {
@@ -175,10 +177,91 @@ namespace CCFees_Addon
             int rowCount = matrix.VisualRowCount;
             return (rowCount == 1);
         }
+        private void calculate_CCFees(SAPbouiCOM.Form activeForm)
+        {
+            double total = 0.0;
+            double creditCardFee = 0.0;
+            SAPbouiCOM.EditText ZC_taxFeesLabel = getEdittext(activeForm, 11993);
+            string sFormTotal = getEdittextString(activeForm, 29);
+            string currency = sFormTotal.Split(' ')[1];
+            string formTotal = System.Text.RegularExpressions.Regex.Replace(sFormTotal, "[^0-9.]", "");
+            total = double.Parse(formTotal);
+            Click(activeForm, 91);
+            SAPbouiCOM.Form freightForm = Application.SBO_Application.Forms.ActiveForm;
+            if (freightForm.TypeEx.Equals("3007"))
+            {
+                freightForm.Visible = false;
+                SAPbouiCOM.Matrix freightMatrix = getMatrix(freightForm, 3);
+                int ZC_CCFeesRow = -1;
+                string searchString = "3";
+                for (int i = 1; i < freightMatrix.VisualRowCount + 1; i++)
+                {
+                    string cellValue = getMatirxString(freightMatrix, 1, i);
+                    if (cellValue == searchString)
+                    {
+                        ZC_CCFeesRow = i;
+                    }
+                }
+                if (ZC_CCFeesRow == -1)
+                {
+                    printMessageBox("ZC_CCFees frieght is not setup  ", 0, new string[] { "OK" });
+                }
+                else
+                {
+                    string oldCCFees = getMatirxString(freightMatrix, 3, ZC_CCFeesRow);
+                    string sOldCCFees = System.Text.RegularExpressions.Regex.Replace(oldCCFees, "[^0-9.]", "");
+                    double dOldCCFees = Double.Parse(sOldCCFees);
+                    double FinalTotal = total - dOldCCFees;
+                    creditCardFee = FinalTotal * 0.03;
+                }
+                freightForm.Close();
+            }
+            ZC_taxFeesLabel.Value = creditCardFee.ToString("N2") + "  " + currency;
+            Click(activeForm, 16);
+            activeForm.Items.Item("11993").Enabled = false;
+
+        }
+        private bool differentPaymentMethods(SAPbouiCOM.Form activeForm)
+        {
+            SAPbouiCOM.ComboBox pymntMethod = getComboBox(activeForm, 148);
+            string x = pymntMethod.Value;
+            return (!x.Equals("Credit Card"));
+        }
         private void CalculateButton(object sboObject, SAPbouiCOM.SBOItemEventArg pVal, out bool BubbleEvent)
         {
             BubbleEvent = true;
-            printMessageBox("Calculate Button Working", 0, new string[] { "Yes", "No" });
+            SAPbobsCOM.Company oCompany = (SAPbobsCOM.Company)Application.SBO_Application.Company.GetDICompany();
+            SAPbouiCOM.Form activeForm = (SAPbouiCOM.Form)this.UIAPIRawForm;
+            int z = -7829;
+            bool proceed = true;
+
+            if (created(activeForm))
+            {
+                printStatusBar("Document is already created!", 1, 0);
+                return;
+            }
+
+            if (noRows(activeForm))
+            {
+                printStatusBar("Empty Document", 1, 0);
+                return;
+            }
+
+
+            if (noTaxRows(activeForm))
+            {
+                printStatusBar("Row without tax was found ", 1, 0);
+                return;
+            }
+
+            if (differentPaymentMethods(activeForm))
+            {
+                z = printMessageBox("Another payment method found \n Do you want to proceed?", 0, new string[] { "Yes", "No" });
+                if (z == 1)
+                {
+                    calculate_CCFees(activeForm);
+                }
+            }
 
         }
 
