@@ -1,0 +1,8 @@
+C:\Users\adham.haggag\source\repos\CCFees_Addon\CCFees_Addon\bin\Debug\CCFees_Addon.exe
+C:\Users\adham.haggag\source\repos\CCFees_Addon\CCFees_Addon\bin\Debug\CCFees_Addon.pdb
+C:\Users\adham.haggag\source\repos\CCFees_Addon\CCFees_Addon\bin\Debug\SAPBusinessOneSDK.dll
+C:\Users\adham.haggag\source\repos\CCFees_Addon\CCFees_Addon\obj\Debug\CCFees_Addon.csproj.AssemblyReference.cache
+C:\Users\adham.haggag\source\repos\CCFees_Addon\CCFees_Addon\obj\Debug\CCFees_Addon.csproj.CoreCompileInputs.cache
+C:\Users\adham.haggag\source\repos\CCFees_Addon\CCFees_Addon\obj\Debug\CCFees_Addon.csproj.CopyComplete
+C:\Users\adham.haggag\source\repos\CCFees_Addon\CCFees_Addon\obj\Debug\CCFees_Addon.exe
+C:\Users\adham.haggag\source\repos\CCFees_Addon\CCFees_Addon\obj\Debug\CCFees_Addon.pdb
