@@ -268,8 +268,112 @@ namespace CCFees_Addon
         private void AddButton(object sboObject, SAPbouiCOM.SBOItemEventArg pVal, out bool BubbleEvent)
         {
             BubbleEvent = true;
-            printMessageBox("Add Button Working", 0, new string[] { "Yes", "No" });
+            SAPbobsCOM.Company oCompany = (SAPbobsCOM.Company)Application.SBO_Application.Company.GetDICompany();
+            SAPbouiCOM.Form activeForm = (SAPbouiCOM.Form)this.UIAPIRawForm;
+            activeForm.Refresh();
+            int z = -7829;
+            bool proceed = true;
+            SAPbobsCOM.Recordset invoices = query();
+            string docNumStr = getEdittextString(activeForm, 8);
+            int docNum = int.Parse(docNumStr);
 
+            invoices.DoQuery("SELECT T0.\"DocNum\" FROM OINV T0 WHERE T0.\"DocNum\" = '" + docNum + "'");
+
+            if (activeForm.TypeEx.Equals("133"))
+            {
+                string docNumReturn = getQueryField(invoices, "DocNum");
+                if (!docNumReturn.Equals("0"))
+                {
+                    printStatusBar("Document is already created!", 1, 0);
+                }
+                else
+                {
+                    bool EmptyRowTax = false;
+                    SAPbouiCOM.Matrix matrix = (SAPbouiCOM.Matrix)activeForm.Items.Item("38").Specific;
+
+                    int rowCount = matrix.VisualRowCount;
+                    if (rowCount == 1)
+                    {
+                        printStatusBar("Empty Document", 1, 0);
+                    }
+                    else
+                    {
+                        for (int i = 1; i <= rowCount - 1; i++)
+                        {
+                            string taxCode = getMatirxString(matrix, 160, i);
+                            if (string.IsNullOrEmpty(taxCode))
+                            {
+                                EmptyRowTax = true;
+                                break;
+                            }
+                        }
+                        if (EmptyRowTax)
+                        {
+                            printStatusBar("Row without tax was found", 1, 0);
+                        }
+                        else
+                        {
+                            SAPbouiCOM.ComboBox pymntMethod = getComboBox(activeForm, 148);
+                            string x = pymntMethod.Value;
+                            if (!x.Equals("Credit Card"))
+                            {
+                                z = printMessageBox("Another payment method found (" + x + ") \n Do you want to proceed?", 0, new string[] { "Yes", "No" });
+                                if (z == 2)
+                                {
+                                    proceed = false;
+                                }
+                            }
+                            if (proceed)
+                            {
+                                double total = 0.0;
+                                double creditCardFee = 0.0;
+                                SAPbouiCOM.EditText ZC_taxFeesLabel = getEdittext(activeForm, 11993);
+                                string sFormTotal = getEdittextString(activeForm, 29);
+                                string formTotal = System.Text.RegularExpressions.Regex.Replace(sFormTotal, "[^0-9.]", "");
+                                total = double.Parse(formTotal);
+                                Click(activeForm, 91);
+                                SAPbouiCOM.Form freightForm = Application.SBO_Application.Forms.ActiveForm;
+                                if (freightForm.TypeEx.Equals("3007"))
+                                {
+                                    freightForm.Visible = false;
+                                    SAPbouiCOM.Matrix freightMatrix = (SAPbouiCOM.Matrix)freightForm.Items.Item("3").Specific;
+                                    int ZC_CCFeesRow = -1;
+                                    string searchString = "3";
+                                    for (int i = 1; i < freightMatrix.VisualRowCount + 1; i++)
+                                    {
+                                        string cellValue = getMatirxString(freightMatrix, 1, i);
+                                        if (cellValue == searchString)
+                                        {
+                                            ZC_CCFeesRow = i;
+                                        }
+                                    }
+                                    if (ZC_CCFeesRow == -1)
+                                    {
+                                        printMessageBox("ZC_CCFees frieght is not setup  ", 0, new string[] { "OK" });
+                                    }
+                                    else
+                                    {
+                                        string oldCCFees = getMatirxString(freightMatrix, 3, ZC_CCFeesRow);
+                                        string sOldCCFees = System.Text.RegularExpressions.Regex.Replace(oldCCFees, "[^0-9.]", "");
+                                        double dOldCCFees = Double.Parse(sOldCCFees);
+                                        double FinalTotal = total - dOldCCFees;
+                                        creditCardFee = FinalTotal * 0.03;
+                                        setMatrixValue(freightMatrix, 3, ZC_CCFeesRow, creditCardFee.ToString());
+                                        setMatrixValue(freightMatrix, 17, ZC_CCFeesRow, "Exempt");
+                                        Click(freightForm, 1);
+                                    }
+
+                                    freightForm.Close();
+                                }
+                            }
+
+
+                            activeForm = Application.SBO_Application.Forms.ActiveForm;
+                        }
+                    }
+
+                }
+            }
         }
     }
 }
